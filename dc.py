@@ -194,7 +194,7 @@ def generate_docker_compose_file(ctx: Ctx):
   print('%s -> Outputting %s' % (colors.reset, OUTPUT_DOCKER_COMPOSE))
   with open(OUTPUT_DOCKER_COMPOSE, 'wb') as fp:
     fp.write(("# %s\n" % GENERATED_STRING).encode())
-    yaml.indent(mapping=2, sequence=2, offset=2)
+    yaml.indent(mapping=2, sequence=4, offset=2)
     yaml.dump(data, fp)
 
 
