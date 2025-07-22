@@ -1,0 +1,28 @@
+version: '3.4'
+
+# need to manually make this network:  docker network create traefik_proxy
+# networks:
+#   traefik_proxy:
+#     external:
+#       name: traefik_proxy
+
+x-base: &base
+  restart: unless-stopped
+  environment:
+    - PUID=${PUID}
+    - PGID=${PGID}
+    - TZ=${TZ}
+  volumes:
+    - /etc/localtime:/etc/localtime:ro
+  networks:
+    - default
+
+# In case we need one without the PUID/PGID automaticall set.
+x-base-no-user-env: &base-no-user-env
+  restart: unless-stopped
+  environment:
+    - TZ=${TZ}
+  volumes:
+    - /etc/localtime:/etc/localtime:ro
+  networks:
+    - default
