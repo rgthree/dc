@@ -10,6 +10,8 @@ import ruamel.yaml  # https://sourceforge.net/p/ruamel-yaml/code/ci/default/tree
 
 yaml = ruamel.yaml.YAML()
 
+VERSION = 1.1
+OUTPUT_DOCKER_COMPOSE_FILE = 'generated.docker-compose.yaml'
 
 class Emitter(ruamel.yaml.emitter.Emitter):
   '''Emitter to clear out empty lines in lists.'''
@@ -83,7 +85,6 @@ def docker_compose_run(docker_args):
         ./dc.py media/ down
         ./dc.py media/ reup
   '''
-  OUTPUT_DOCKER_COMPOSE_FILE = 'generated.docker-compose.yaml'
   print(
     '%s -> Running: docker compose --file %s %s' %
     (colors.reset, OUTPUT_DOCKER_COMPOSE_FILE, ' '.join(docker_args))
@@ -194,7 +195,7 @@ def generate_docker_compose_file(ctx: Ctx):
   print('%s -> Outputting %s' % (colors.reset, OUTPUT_DOCKER_COMPOSE))
   with open(OUTPUT_DOCKER_COMPOSE, 'wb') as fp:
     fp.write(("# %s\n" % GENERATED_STRING).encode())
-    yaml.indent(mapping=2, sequence=2, offset=2)
+    yaml.indent(mapping=2, sequence=4, offset=2)
     yaml.dump(data, fp)
 
 
@@ -278,6 +279,11 @@ def handle_traefik_rule(service, rule_data: dict):
   service.update({'networks': networks_list, 'labels': labels_list,})
 
 
+def get_subdir(subdir):
+  if subdir.endswith('/'):
+    subdir = subdir[:-1]
+  return subdir
+
 def main(argv):
   if argv[0] in ['-h', '--help', '-?']:
     print()
@@ -295,10 +301,34 @@ def main(argv):
     print()
     return
 
-  subdir = argv[0]
-  if subdir.endswith('/'):
-    subdir = subdir[:-1]
+  if argv[0] in ['-v', '--version']:
+    print(VERSION)
+    return
 
+  if argv[0] in ['-l', '--list', 'ls']:
+    passed_subdir = get_subdir(argv[1] if len(argv) > 1 else '')
+    # ┘ ┐ ┌ └ ┼ ─ ├ ┤ ┴ ┬ │
+    print(f'┌─ {os.getcwd()}')
+    print('│')
+    for subdir in os.listdir('.'):
+      if passed_subdir and passed_subdir != subdir:
+        continue
+      dc_file = os.path.join('.', subdir, OUTPUT_DOCKER_COMPOSE_FILE)
+      if not os.path.isfile(dc_file):
+        continue
+      print(f'├─┬─ {subdir}')
+      with open(dc_file, 'r') as file:
+        data = yaml.load(file)
+        for i, service in enumerate(data['services']):
+          if i == len(data['services']) - 1:
+            print(f'│ └─── {service}')
+          else:
+            print(f'│ ├─── {service}')
+      print('│')
+
+    return
+
+  subdir = get_subdir(argv[0])
   subdir_relative = f'./{subdir}'
 
   if not os.path.isdir(subdir_relative):
